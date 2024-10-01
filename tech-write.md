@@ -225,7 +225,6 @@ class ClubRepositoryTest {
 실제로, ClubRepository의 findAll을 다음과 같이 변경하면, 테스트가 성공하게 됩니다.  
 ![image](tech-write-img/5.PNG)
 
-![image](https://github.com/user-attachments/assets/078e17a1-9bc3-4331-91c2-611e614c387f)
 
 그렇다면, 왜 Hibernate는 여러 개의 Bag(List)를 fetch Join 하는 것을 명시적으로 금지할까요?
 
@@ -247,7 +246,7 @@ class ClubRepositoryTest {
 실제 findAll을 수행했을 때, 생성되는 query는 위와 같습니다. (left join은 EntityGraph로 인한 결과 입니다.)  
 해당 query를 실제 Mysql에서 실행한 결과는 다음과 같습니다. (테스트 코드에 사용된 초기 데이터와 동일한 데이터 기준 입니다.)  
 
-![image](https://github.com/user-attachments/assets/7384abd2-0aa8-44c6-9f59-695cadfbc8aa)
+![image](tech-write-img/6.PNG)
 
 query 실행 시 위 처럼 동일한 Club(= 동일한 PK) 가 참여 중인 회원의 인원 수 만큼 중복되어 나오는 것을 확인할 수 있습니다. 
 이는 JPA가 Bag을 Fetch Join 하게 될 때, 발생하는 Cartesian product으로 인한 결과입니다.  
@@ -269,25 +268,24 @@ JPA의 영속성 컨텍스트는 기본적으로  특정 ID를 가진 엔티티�
 
 단편적으로 MultipleBagFetchException을 방지하기 위해서는 중복을 허용하지 않으면 됩니다.  
 결국 Hibernate는 List를 BagType으로 매핑하기 때문에 이를 Set으로 변경하게 되면 해결이 됩니다. 
-![image](https://github.com/user-attachments/assets/50164f82-5cd9-4079-9ac4-189c3ffb412d) 
-![image](https://github.com/user-attachments/assets/a2a9504c-bdf7-48cc-9eba-0b7cc6622205)
+![image](tech-write-img/7.PNG)
 
 ### 2. OrderCoulmn(순서를 부여하기)
 
 @OrderColumn은 JPA에서 컬렉션의 요소들을 특정 순서로 저장하고 관리할 수 있게 해주는 어노테이션입니다. 엔티티가 연결된 컬렉션의 순서를 유지할 수 있도록 합니다.  
 또, OrderColumn 을 쓰게되면 hibernate 에서 ListType 으로 잡게 됩니다. 이로 인해 MultipleBagFetchException을 방지할 수 있습니다. 
 
-![image](https://github.com/user-attachments/assets/14fcf441-3b37-498f-aff7-3cab491460e4)
+![image](tech-write-img/8.PNG)
 
 ### 1,2번의 문제점
 
 
 1,2 결과를 보면 예외가 발생하지 않고 정상적으로 동작하게 됩니다. 
-![image](https://github.com/user-attachments/assets/6bac8191-7553-4fab-a13b-1536fba64c10)
+![image](tech-write-img/9.PNG)
 
 하지만 이 방법은 Cartesian product으로 인한 데이터 중복 문제를 여전히 해결 할 수 없습니다.  
 실제 테스트에서 실행된 query를 수행해보면 결과는 다음과 같습니다. 
-![image](https://github.com/user-attachments/assets/014b32a7-a5b5-44a6-8c5e-3c335d2e267c)
+![image](tech-write-img/10.PNG)
 
 모임1 기준 참여 중인 회원(3) X 참여 중인 강아지(3) 으로 총 9개의 중복 데이터가 발생함을 알 수 있습니다.  
 실제 반갑개 기준 Club, Member, Pet에 각 100만건의 데이터를 삽입 후 랜덤으로 Club에 참여하도록 지정했을 때, 위 query는 30초 이상 소요되며,
@@ -330,9 +328,7 @@ default_batch_fetch_size를 10으로 설정하여 아래 테스트 코드를 실
         }
     }
 ```
-![image](https://github.com/user-attachments/assets/35f4608d-165f-49e2-af71-1155bc04795e)
-![image](https://github.com/user-attachments/assets/c0c4859a-68ed-4cda-a9d8-6b88fcc7b93a)
-![image](https://github.com/user-attachments/assets/1e810532-299a-45ee-bb87-2971edff4e19)
+![image](tech-write-img/11.PNG)
 
 위 처럼 Club은 심플한 SELECT * FROM club query가 발생하게 되고, 연관 관계에 해당하는 Member, Pet의 경우는 In query로 개선되어 나가는 것을 확인할 수 있습니다.  
 이 방식을 사용하게 되면, 중복된 row 발생을 예방할 수 있고, Fetch Join을 사용하여 N+1을 해결하는 것이 아니기 때문에 MultipleBagFetchException이 발생하지 않게 됩니다.  
