@@ -78,7 +78,7 @@ List<Club> findAllByParticipatingMemberId(@Param("memberId") Long memberId);
 
 위 JPQL 사용하는 Service의 테스트를 작성하던 중 다음과 같은 예외가 발생했습니다.
 
-![image](https://github.com/user-attachments/assets/730ae3f4-2af4-432a-8cb8-eccbfe89152e)
+![image](tech-write-img/1.PNG)
 
 그렇다면 아래처럼 EntityGraph 어노테이션을 사용하면 문제가 해결될까요?
 
@@ -206,24 +206,24 @@ class ClubRepositoryTest {
     }
 }
 ```
-![image](https://github.com/user-attachments/assets/b5ad7872-6c58-472c-b89a-50c6fd3da9c2)
+![image](tech-write-img/2.PNG)
 
 문제 상황 재연이 성공적으로 된 것을 확인할 수 있었습니다.  
 
 본격적으로 발생한 **MultipleBagFetchException: cannot simultaneously fetch multiple bags** 에 대해 알아보도록 하겠습니다.  
-![image](https://github.com/user-attachments/assets/6bc7d0e5-2d0b-4427-b5b7-d3f180cb3ffd)
+![image](tech-write-img/3.PNG)
 
 쿼리가 여러 Bag을 **동시에** Fetch 시도하고 있음을 나타내는 데 사용되는 예외라고 합니다.  
 
 그렇다면 Bag은 무엇일까요?  
-![image](https://github.com/user-attachments/assets/5f260a71-ebdd-41ca-ad7b-fe78c533d106)
+![image](tech-write-img/4.PNG)
 
 결국 Bag이란, 중복 가능한 Set(=MultiSet)을 의미하는 Hibernate의 용어임을 알 수 있고, Java Collection Framework에서는 Bag에 관련된 interface가 존재하지 않아, 관행상의 이유로 Java Collection Framework의 List로 매핑됨을 알 수 있었습니다.  
 
 **결국 MultipleBagFetchException은 여러 개의 List를 Fetch Join 할 때, 발생되는 문제임을 파악할 수 있게 됐습니다.**
 
-실제로, ClubRepository의 findAll을 다음과 같이 변경하면, 테스트가 성공하게 됩니다.
-![image](https://github.com/user-attachments/assets/4d55168a-3861-40fa-b23f-a1d2b6a470a5)
+실제로, ClubRepository의 findAll을 다음과 같이 변경하면, 테스트가 성공하게 됩니다.  
+![image](tech-write-img/5.PNG)
 
 ![image](https://github.com/user-attachments/assets/078e17a1-9bc3-4331-91c2-611e614c387f)
 
